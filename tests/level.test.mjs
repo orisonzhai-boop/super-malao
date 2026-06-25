@@ -33,3 +33,15 @@ test('LEVEL is a non-empty array of equal-length rows', () => {
   const len = LEVEL[0].length;
   for (const row of LEVEL) assert.equal(row.length, len);
 });
+
+test('LEVEL places its key features where the design expects', () => {
+  const lvl = makeLevel(LEVEL);
+  assert.equal(lvl.cols, 88);
+  assert.equal(isSolid(lvl, 10, 12), true);   // ground present near start
+  assert.equal(isSolid(lvl, 32, 12), false);  // gap at cols 31-33
+  assert.equal(isSolid(lvl, 51, 12), false);  // gap at cols 51-52
+  assert.equal(isSolid(lvl, 40, 9), true);    // top of 3-tall pipe at col 40
+  assert.equal(isSolid(lvl, 40, 11), true);   // base of that pipe
+  assert.equal(lvl.flagCol, 84);              // flag near the end
+  assert.equal(lvl.goombas.length, 3);
+});
