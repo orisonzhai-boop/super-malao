@@ -1,70 +1,94 @@
 #!/usr/bin/env python3
-"""Slice hero_sheet.webp (2000x2000, 2 rows x 3 cols) into transparent PNG frames
-and emit src/sprites.mjs with base64 data URIs."""
+"""Slice hero_sheet.webp (2000x2000, 2 rows x 3 cols) into clean transparent PNG
+frames and emit src/sprites.mjs with base64 data URIs.
+
+The hand-drawn figures are NOT grid-aligned, so a rigid 1/3 x 1/2 crop catches
+neighbors. Instead we isolate each figure by connected-component analysis: label
+all ink blobs, assign each blob to a grid cell by its centroid, and keep only the
+blobs belonging to the target cell (masking everything else transparent)."""
 import base64, io, os
+import numpy as np
 from PIL import Image
+from scipy import ndimage
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 SHEET = os.path.join(ROOT, "assets", "hero_sheet.webp")
 FRAMES_DIR = os.path.join(ROOT, "assets", "frames")
 OUT_MJS = os.path.join(ROOT, "src", "sprites.mjs")
 
-# (name, row, col) for the cells we use. Sheet grid is 2 rows x 3 cols.
-CELLS = {
-    "idle": (0, 0),   # front, fists up
-    "runA": (1, 0),   # running
-    "runB": (0, 1),   # side profile (2nd run frame)
-    "jump": (1, 2),   # arms-up celebrate
-}
-WHITE_THRESHOLD = 232   # luminance above this becomes transparent
-TARGET_H = 128          # exported frame height in px (downscaled in-game)
+CELLS = {"idle": (0, 0), "runA": (1, 0), "runB": (0, 1), "jump": (1, 2)}
+INK_THRESHOLD = 120      # luminance below this counts as ink
+WHITE_THRESHOLD = 232    # luminance above this -> transparent
+FEATHER = 28             # soft alpha ramp width below WHITE_THRESHOLD
+TARGET_H = 128
+MIN_BLOB_FRAC = 0.0006   # ignore ink blobs smaller than this fraction of sheet area
+PAD = 8
 
-def slice_cell(sheet, row, col):
-    w, h = sheet.size
-    cw, ch = w // 3, h // 2
-    return sheet.crop((col * cw, row * ch, (col + 1) * cw, (row + 1) * ch))
+def luminance(rgb):
+    rgb = rgb.astype(np.float32)
+    return 0.299 * rgb[..., 0] + 0.587 * rgb[..., 1] + 0.114 * rgb[..., 2]
 
-def whiten_to_alpha(img):
-    img = img.convert("RGBA")
-    px = img.load()
-    w, h = img.size
-    for y in range(h):
-        for x in range(w):
-            r, g, b, a = px[x, y]
-            lum = 0.299 * r + 0.587 * g + 0.114 * b
-            if lum >= WHITE_THRESHOLD:
-                px[x, y] = (r, g, b, 0)            # fully transparent
-            elif lum >= WHITE_THRESHOLD - 28:
-                fade = int(255 * (WHITE_THRESHOLD - lum) / 28)  # feather edge
-                px[x, y] = (r, g, b, min(a, fade))
-    return img
+def alpha_from_white(lum):
+    a = np.full(lum.shape, 255.0, np.float32)
+    a[lum >= WHITE_THRESHOLD] = 0.0
+    feather = (lum < WHITE_THRESHOLD) & (lum >= WHITE_THRESHOLD - FEATHER)
+    a[feather] = 255.0 * (WHITE_THRESHOLD - lum[feather]) / FEATHER
+    return a
 
 def autocrop(img):
     bbox = img.getbbox()
     return img.crop(bbox) if bbox else img
 
-def scale_h(img, target_h):
-    w, h = img.size
-    nw = max(1, round(w * target_h / h))
-    return img.resize((nw, target_h), Image.LANCZOS)
+def scale_h(img, h):
+    w, hh = img.size
+    return img.resize((max(1, round(w * h / hh)), h), Image.LANCZOS)
 
 def main():
     os.makedirs(FRAMES_DIR, exist_ok=True)
     os.makedirs(os.path.dirname(OUT_MJS), exist_ok=True)
     sheet = Image.open(SHEET).convert("RGB")
+    arr = np.asarray(sheet)
+    H, W = arr.shape[:2]
+    lum = luminance(arr)
+    ink = lum < INK_THRESHOLD
+    labels, n = ndimage.label(ink, structure=np.ones((3, 3), int))
+    idx = np.arange(1, n + 1)
+    areas = ndimage.sum(ink.astype(np.float32), labels, index=idx) if n else []
+    centroids = ndimage.center_of_mass(ink, labels, index=idx) if n else []
+    min_area = MIN_BLOB_FRAC * H * W
+    label_cell = {}
+    for i in range(n):
+        if areas[i] < min_area:
+            continue
+        cy, cx = centroids[i]
+        row = 0 if cy < H / 2 else 1
+        col = min(2, int(cx // (W / 3)))
+        label_cell[i + 1] = (row, col)
+    alpha_full = alpha_from_white(lum)
+
     entries = []
     for name, (row, col) in CELLS.items():
-        cell = slice_cell(sheet, row, col)
-        cell = whiten_to_alpha(cell)
-        cell = autocrop(cell)
-        cell = scale_h(cell, TARGET_H)
-        png_path = os.path.join(FRAMES_DIR, f"{name}.png")
-        cell.save(png_path)
-        buf = io.BytesIO()
-        cell.save(buf, format="PNG")
+        ids = [lid for lid, rc in label_cell.items() if rc == (row, col)]
+        if ids:
+            belongs = np.isin(labels, ids)
+            ys, xs = np.where(belongs)
+            y0, y1 = max(0, ys.min() - PAD), min(H, ys.max() + 1 + PAD)
+            x0, x1 = max(0, xs.min() - PAD), min(W, xs.max() + 1 + PAD)
+            a = np.where(belongs, alpha_full, 0.0)
+            rgba = np.dstack([arr[y0:y1, x0:x1], a[y0:y1, x0:x1]]).astype(np.uint8)
+            img = Image.fromarray(rgba, "RGBA")
+        else:
+            cw, ch = W // 3, H // 2
+            sub = arr[row * ch:(row + 1) * ch, col * cw:(col + 1) * cw]
+            a = alpha_from_white(luminance(sub))
+            img = Image.fromarray(np.dstack([sub, a]).astype(np.uint8), "RGBA")
+        img = autocrop(img)
+        img = scale_h(img, TARGET_H)
+        img.save(os.path.join(FRAMES_DIR, f"{name}.png"))
+        buf = io.BytesIO(); img.save(buf, "PNG")
         b64 = base64.b64encode(buf.getvalue()).decode("ascii")
-        entries.append((name, cell.size, f"data:image/png;base64,{b64}"))
-        print(f"{name}: size={cell.size} bytes={len(b64)}")
+        entries.append((name, img.size, f"data:image/png;base64,{b64}"))
+        print(f"{name}: cell=({row},{col}) blobs={len(ids)} out={img.size} bytes={len(b64)}")
     with open(OUT_MJS, "w") as f:
         f.write("// GENERATED by tools/slice_hero.py — do not edit by hand.\n")
         f.write("export const SPRITES = {\n")
