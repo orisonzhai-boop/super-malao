@@ -50,6 +50,23 @@ export function moveAxis(box, level, axis, delta) {
   return hit;
 }
 
+// Row of the solid tile the player is resting on, or -1 if airborne.
+// Probes the tile row just beneath the feet and requires the feet to be at/near
+// that row's top, so a player resting on a tile boundary stays reliably grounded.
+export function groundedRow(player, level) {
+  if (player.vy < 0) return -1;            // moving up = not grounded
+  const t = level.tile;
+  const feetY = player.y + player.h;
+  const probeRow = Math.floor((feetY + 1) / t);
+  if (feetY < probeRow * t - 2) return -1; // feet floating above the row
+  const cL = Math.floor((player.x + 1) / t);
+  const cR = Math.floor((player.x + player.w - 2) / t);
+  for (let c = cL; c <= cR; c++) {
+    if (isSolid(level, c, probeRow)) return probeRow;
+  }
+  return -1;
+}
+
 // Advance the player one fixed step. input: {left,right,jump}. Mutates and returns player.
 export function stepPlayer(player, input, level) {
   const P = PHYS;
@@ -76,9 +93,16 @@ export function stepPlayer(player, input, level) {
 
   moveAxis(player, level, 'x', player.vx);
   const hitY = moveAxis(player, level, 'y', player.vy);
-  if (hitY) {
-    if (player.vy > 0) { player.onGround = true; player.coyote = P.coyote; }
+  if (hitY) player.vy = 0; // stopped by floor (landing) or ceiling (head bonk)
+
+  // Sticky ground detection: keeps the player grounded when resting on a tile
+  // boundary (no per-frame onGround/y jitter) and refreshes coyote time.
+  const gr = groundedRow(player, level);
+  if (gr >= 0) {
+    player.y = gr * level.tile - player.h; // snap feet to the ground tile's top
     player.vy = 0;
+    player.onGround = true;
+    player.coyote = P.coyote;
   } else {
     player.onGround = false;
   }

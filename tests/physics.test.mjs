@@ -52,3 +52,17 @@ test('player accelerates right but is capped at maxRun', () => {
   assert.ok(p.vx <= PHYS.maxRun + 1e-9);
   assert.equal(p.facing, 1);
 });
+
+test('resting player stays grounded without jitter', () => {
+  const lvl = makeLevel(['      ', '      ', '######']);
+  const p = makePlayer(1 * TILE, 0);
+  for (let i = 0; i < 40; i++) stepPlayer(p, { left: false, right: false, jump: false }, lvl);
+  const restY = p.y;
+  assert.equal(p.onGround, true);
+  for (let i = 0; i < 20; i++) {
+    stepPlayer(p, { left: false, right: false, jump: false }, lvl);
+    assert.equal(p.onGround, true, `frame ${i}: should stay grounded`);
+    assert.equal(p.y, restY, `frame ${i}: y must not drift`);
+    assert.equal(p.state, 'idle', `frame ${i}: should be idle`);
+  }
+});
