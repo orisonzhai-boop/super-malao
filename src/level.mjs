@@ -1,6 +1,6 @@
 export const TILE = 32;
 
-const SOLID = new Set(['#', 'B', '?', 'P']);
+const SOLID = new Set(['#', 'B', '?', 'P', 'U']); // 'U' = spent '?' block (still solid)
 export function isSolidChar(ch) { return SOLID.has(ch); }
 
 export function makeLevel(rows) {
@@ -29,6 +29,27 @@ export function tileChar(level, col, row) {
 }
 
 export function isSolid(level, col, row) { return isSolidChar(tileChar(level, col, row)); }
+
+// Replace a single tile in the (mutable) level grid. Used to "spend" a '?' block.
+export function setTile(level, col, row, ch) {
+  if (row < 0 || row >= level.grid.length) return;
+  const line = level.grid[row];
+  if (col < 0 || col >= line.length) return;
+  level.grid[row] = line.slice(0, col) + ch + line.slice(col + 1);
+}
+
+// When an upward move was just stopped (head bonk), find a '?' tile directly above
+// the player's head. Returns { col, row } of the bumped block, or null.
+export function questionBumpTile(player, level) {
+  const t = level.tile;
+  const row = Math.round(player.y / t) - 1; // player.y snaps to (row+1)*t on a ceiling hit
+  const cL = Math.floor(player.x / t);
+  const cR = Math.floor((player.x + player.w - 1) / t);
+  for (let c = cL; c <= cR; c++) {
+    if (tileChar(level, c, row) === '?') return { col: c, row };
+  }
+  return null;
+}
 
 function buildLevel() {
   const COLS = 88, ROWS = 14;

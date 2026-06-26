@@ -1,12 +1,22 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { TILE, isSolidChar, makeLevel, tileChar, isSolid, LEVEL } from '../src/level.mjs';
+import { TILE, isSolidChar, makeLevel, tileChar, isSolid, setTile, LEVEL } from '../src/level.mjs';
 
 test('TILE is 32', () => assert.equal(TILE, 32));
 
 test('isSolidChar classifies tiles', () => {
-  for (const ch of ['#', 'B', '?', 'P']) assert.equal(isSolidChar(ch), true, ch);
+  for (const ch of ['#', 'B', '?', 'P', 'U']) assert.equal(isSolidChar(ch), true, ch);
   for (const ch of [' ', 'o', 'g', 'F']) assert.equal(isSolidChar(ch), false, ch);
+});
+
+test('setTile spends a ? block in place, staying solid', () => {
+  const lvl = makeLevel(['?#', '##']);
+  assert.equal(tileChar(lvl, 0, 0), '?');
+  setTile(lvl, 0, 0, 'U');
+  assert.equal(tileChar(lvl, 0, 0), 'U');
+  assert.equal(isSolid(lvl, 0, 0), true);       // spent block still solid
+  assert.equal(tileChar(lvl, 1, 0), '#');        // neighbor untouched
+  setTile(lvl, 99, 99, 'U');                      // out of range = no-op, no throw
 });
 
 test('makeLevel strips entities into lists', () => {

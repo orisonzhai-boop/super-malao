@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { makeLevel, TILE } from '../src/level.mjs';
+import { makeLevel, TILE, tileChar, setTile, questionBumpTile } from '../src/level.mjs';
 import { PHYS, moveAxis, makePlayer, stepPlayer } from '../src/physics.mjs';
 
 test('moveAxis lands a falling box on the floor', () => {
@@ -54,6 +54,24 @@ test('player accelerates right but is capped at maxRun', () => {
   for (let i = 0; i < 60; i++) stepPlayer(p, { left: false, right: true, jump: false }, lvl);
   assert.ok(p.vx <= PHYS.maxRun + 1e-9);
   assert.equal(p.facing, 1);
+});
+
+test('jumping into a ? block head-bonks it and questionBumpTile finds it', () => {
+  // '?' high at row 1 col 0; player starts in open air (rows 4-5) and is launched up;
+  // ground is far below (row 7) so it never enters the rising player's footprint.
+  const lvl = makeLevel(['  ', '? ', '  ', '  ', '  ', '  ', '  ', '##']);
+  const p = makePlayer(0, 4 * TILE); // mid-air, well clear of both block and ground
+  p.vy = PHYS.jumpVel; p.onGround = false;
+  let bumped = null;
+  for (let i = 0; i < 20 && !bumped; i++) {
+    const vyBefore = p.vy;
+    stepPlayer(p, { left: false, right: false, jump: true }, lvl); // hold jump so vy isn't cut
+    if (vyBefore < 0 && p.vy === 0) bumped = questionBumpTile(p, lvl);
+  }
+  assert.ok(bumped, 'expected a head-bonk on the ? block');
+  assert.deepEqual(bumped, { col: 0, row: 1 });
+  setTile(lvl, bumped.col, bumped.row, 'U'); // spend it
+  assert.equal(tileChar(lvl, 0, 1), 'U');
 });
 
 test('resting player stays grounded without jitter', () => {

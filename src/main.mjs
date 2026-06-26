@@ -1,4 +1,4 @@
-import { TILE, makeLevel, LEVEL } from './level.mjs';
+import { TILE, makeLevel, LEVEL, setTile, questionBumpTile } from './level.mjs';
 import { makePlayer, stepPlayer } from './physics.mjs';
 import { makeEnemy, stepEnemy, stompCheck } from './entities.mjs';
 import { initialGame, reduce } from './state.mjs';
@@ -78,8 +78,19 @@ export async function boot() {
 
     // PLAYING
     const p = world.player;
+    const vyBefore = p.vy;
     stepPlayer(p, { left: input.left, right: input.right, jump: input.jump }, level);
     if (p.justJumped) audio.jump(); // covers ground, coyote, and buffered jumps
+
+    // '?' block bump: an upward move stopped this frame (head bonk) over a '?' tile pops a coin
+    if (vyBefore < 0 && p.vy === 0) {
+      const bumped = questionBumpTile(p, level);
+      if (bumped) {
+        setTile(level, bumped.col, bumped.row, 'U');
+        game = reduce(game, { type: 'coin' });
+        audio.coin();
+      }
+    }
 
     for (const e of world.enemies) stepEnemy(e, level);
 

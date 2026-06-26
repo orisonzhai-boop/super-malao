@@ -8,6 +8,7 @@ const C = {
   dirt: '#c77b3a', grass: '#6abe30', dirtLine: '#9c5a26',
   brick: '#b5651d', brickLine: '#7c4310',
   qblock: '#f4b400', qStroke: '#a06f00', qText: '#7a5300',
+  used: '#b08a5a', usedLine: '#7c5a30',
   pipe: '#2ea44f', pipeStroke: '#1b7a37',
   coin: '#ffd23f', coinStroke: '#c79400',
   goomba: '#9c5a2c', goombaFoot: '#6b3b18',
@@ -82,6 +83,10 @@ function drawTile(ctx, ch, sx, sy) {
   } else if (ch === 'P') {
     ctx.fillStyle = C.pipe; ctx.fillRect(sx, sy, TILE, TILE);
     ctx.strokeStyle = C.pipeStroke; ctx.lineWidth = 2; ctx.strokeRect(sx + 1, sy + 1, TILE - 2, TILE - 2);
+  } else if (ch === 'U') {
+    ctx.fillStyle = C.used; ctx.fillRect(sx, sy, TILE, TILE);
+    ctx.strokeStyle = C.usedLine; ctx.lineWidth = 2; ctx.strokeRect(sx + 1, sy + 1, TILE - 2, TILE - 2);
+    ctx.fillStyle = C.usedLine; ctx.fillRect(sx + TILE / 2 - 5, sy + TILE / 2 - 1, 10, 3);
   }
 }
 

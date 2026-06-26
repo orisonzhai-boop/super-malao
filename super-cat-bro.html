@@ -37,7 +37,7 @@ export const SPRITE_NATURAL = {
 // ===== level.mjs =====
 export const TILE = 32;
 
-const SOLID = new Set(['#', 'B', '?', 'P']);
+const SOLID = new Set(['#', 'B', '?', 'P', 'U']); // 'U' = spent '?' block (still solid)
 export function isSolidChar(ch) { return SOLID.has(ch); }
 
 export function makeLevel(rows) {
@@ -66,6 +66,27 @@ export function tileChar(level, col, row) {
 }
 
 export function isSolid(level, col, row) { return isSolidChar(tileChar(level, col, row)); }
+
+// Replace a single tile in the (mutable) level grid. Used to "spend" a '?' block.
+export function setTile(level, col, row, ch) {
+  if (row < 0 || row >= level.grid.length) return;
+  const line = level.grid[row];
+  if (col < 0 || col >= line.length) return;
+  level.grid[row] = line.slice(0, col) + ch + line.slice(col + 1);
+}
+
+// When an upward move was just stopped (head bonk), find a '?' tile directly above
+// the player's head. Returns { col, row } of the bumped block, or null.
+export function questionBumpTile(player, level) {
+  const t = level.tile;
+  const row = Math.round(player.y / t) - 1; // player.y snaps to (row+1)*t on a ceiling hit
+  const cL = Math.floor(player.x / t);
+  const cR = Math.floor((player.x + player.w - 1) / t);
+  for (let c = cL; c <= cR; c++) {
+    if (tileChar(level, c, row) === '?') return { col: c, row };
+  }
+  return null;
+}
 
 function buildLevel() {
   const COLS = 88, ROWS = 14;
@@ -355,6 +376,7 @@ const C = {
   dirt: '#c77b3a', grass: '#6abe30', dirtLine: '#9c5a26',
   brick: '#b5651d', brickLine: '#7c4310',
   qblock: '#f4b400', qStroke: '#a06f00', qText: '#7a5300',
+  used: '#b08a5a', usedLine: '#7c5a30',
   pipe: '#2ea44f', pipeStroke: '#1b7a37',
   coin: '#ffd23f', coinStroke: '#c79400',
   goomba: '#9c5a2c', goombaFoot: '#6b3b18',
@@ -429,6 +451,10 @@ function drawTile(ctx, ch, sx, sy) {
   } else if (ch === 'P') {
     ctx.fillStyle = C.pipe; ctx.fillRect(sx, sy, TILE, TILE);
     ctx.strokeStyle = C.pipeStroke; ctx.lineWidth = 2; ctx.strokeRect(sx + 1, sy + 1, TILE - 2, TILE - 2);
+  } else if (ch === 'U') {
+    ctx.fillStyle = C.used; ctx.fillRect(sx, sy, TILE, TILE);
+    ctx.strokeStyle = C.usedLine; ctx.lineWidth = 2; ctx.strokeRect(sx + 1, sy + 1, TILE - 2, TILE - 2);
+    ctx.fillStyle = C.usedLine; ctx.fillRect(sx + TILE / 2 - 5, sy + TILE / 2 - 1, 10, 3);
   }
 }
 
@@ -612,8 +638,19 @@ export async function boot() {
 
     // PLAYING
     const p = world.player;
+    const vyBefore = p.vy;
     stepPlayer(p, { left: input.left, right: input.right, jump: input.jump }, level);
     if (p.justJumped) audio.jump(); // covers ground, coyote, and buffered jumps
+
+    // '?' block bump: an upward move stopped this frame (head bonk) over a '?' tile pops a coin
+    if (vyBefore < 0 && p.vy === 0) {
+      const bumped = questionBumpTile(p, level);
+      if (bumped) {
+        setTile(level, bumped.col, bumped.row, 'U');
+        game = reduce(game, { type: 'coin' });
+        audio.coin();
+      }
+    }
 
     for (const e of world.enemies) stepEnemy(e, level);
 
