@@ -74,6 +74,22 @@ test('jumping into a ? block head-bonks it and questionBumpTile finds it', () =>
   assert.equal(tileChar(lvl, 0, 1), 'U');
 });
 
+test('a full held jump rises ~4 tiles (jump height feel)', () => {
+  const rows = Array(8).fill('      ').concat(['######']); // 9 rows, ground at row 8
+  const lvl = makeLevel(rows);
+  const p = makePlayer(1 * TILE, 0);
+  for (let i = 0; i < 40; i++) stepPlayer(p, { left: false, right: false, jump: false }, lvl); // settle
+  assert.equal(p.onGround, true);
+  const restY = p.y;
+  let minY = restY;
+  for (let i = 0; i < 60; i++) {
+    stepPlayer(p, { left: false, right: false, jump: true }, lvl); // hold jump for full height
+    minY = Math.min(minY, p.y);
+  }
+  const rise = restY - minY;
+  assert.ok(rise >= 120, `expected jump to rise >= 120px (~4 tiles), got ${Math.round(rise)}`);
+});
+
 test('resting player stays grounded without jitter', () => {
   const lvl = makeLevel(['      ', '      ', '######']);
   const p = makePlayer(1 * TILE, 0);

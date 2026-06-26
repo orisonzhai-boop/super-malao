@@ -3,7 +3,7 @@ import { isSolid } from './level.mjs';
 export const PHYS = {
   gravity: 0.8, maxFall: 14,
   accel: 0.8, decel: 1.1, maxRun: 4.5,
-  jumpVel: -13, jumpCut: -5,
+  jumpVel: -15, jumpCut: -5,
   coyote: 6, buffer: 6,
 };
 
