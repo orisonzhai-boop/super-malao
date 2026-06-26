@@ -39,6 +39,6 @@ ${body}
 </html>
 `;
 
-const out = join(ROOT, 'super-cat-bro.html');
+const out = join(ROOT, 'super-malao.html');
 writeFileSync(out, html);
 console.log(`wrote ${out} (${html.length} bytes)`);

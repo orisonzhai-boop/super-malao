@@ -1,5 +1,5 @@
 # Dev-only deps for tools/slice_hero.py (the one-off sprite slicer).
-# Not needed to PLAY the game — super-cat-bro.html is self-contained.
+# Not needed to PLAY the game — super-malao.html is self-contained.
 Pillow>=10
 numpy>=1.24
 scipy>=1.10
