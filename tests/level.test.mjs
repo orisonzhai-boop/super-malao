@@ -55,3 +55,18 @@ test('LEVEL places its key features where the design expects', () => {
   assert.equal(lvl.flagCol, 84);              // flag near the end
   assert.equal(lvl.goombas.length, 3);
 });
+
+test('rebuilding makeLevel(LEVEL) restores spent ? blocks (replay reset)', () => {
+  const a = makeLevel(LEVEL);
+  let q = null;
+  for (let r = 0; r < a.rows && !q; r++) {
+    for (let c = 0; c < a.cols; c++) {
+      if (tileChar(a, c, r) === '?') { q = { c, r }; break; }
+    }
+  }
+  assert.ok(q, 'LEVEL should contain at least one ? block');
+  setTile(a, q.c, q.r, 'U');                 // spend it, as a bump would
+  assert.equal(tileChar(a, q.c, q.r), 'U');
+  const b = makeLevel(LEVEL);                 // what resetRun() does on a full restart
+  assert.equal(tileChar(b, q.c, q.r), '?');  // restored — not carried over from the spent run
+});

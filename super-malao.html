@@ -604,7 +604,7 @@ export async function boot() {
 
   const input = createInput();
   const audio = createAudio();
-  const level = makeLevel(LEVEL);
+  let level = makeLevel(LEVEL);
 
   let game = initialGame();
   let world = freshWorld(level);
@@ -612,7 +612,10 @@ export async function boot() {
   let anim = 0;
   let prevStart = false, prevRestart = false, prevMute = false;
 
-  function resetRun() { world = freshWorld(level); cam = { x: 0 }; }
+  // Full restart rebuilds the level from the immutable LEVEL template so spent
+  // '?' blocks (mutated to 'U' in place) are restored for a fresh playthrough.
+  function resetRun() { level = makeLevel(LEVEL); world = freshWorld(level); cam = { x: 0 }; }
+  // Respawn after a death keeps level/world progress (coins, kills, spent blocks); only the player + camera reset.
   function respawn() { world.player = makePlayer(SPAWN.x, SPAWN.y); cam = { x: 0 }; }
 
   function update() {
