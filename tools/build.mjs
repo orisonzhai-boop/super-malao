@@ -19,7 +19,7 @@ const html = `<!doctype html>
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>超级喵拉奥 / Super Cat Bro</title>
+<title>超级玛拉奥 / Super Malao</title>
 <style>
   html, body { margin: 0; height: 100%; background: #1b1b22; }
   .wrap { min-height: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 10px; font-family: sans-serif; color: #ddd; }

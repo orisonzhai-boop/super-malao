@@ -182,7 +182,7 @@ export function drawScene(ctx, cam, level, world, game, assets, anim) {
 
   drawHUD(ctx, game);
 
-  if (game.phase === 'TITLE') drawOverlay(ctx, ['超级喵拉奥 / Super Cat Bro', '按 Enter 开始', '← → 移动 · 空格跳 · M 静音']);
+  if (game.phase === 'TITLE') drawOverlay(ctx, ['超级玛拉奥 / Super Malao', '按 Enter 开始', '← → 移动 · 空格跳 · M 静音']);
   else if (game.phase === 'DEAD') drawOverlay(ctx, ['你挂了', `按 R 继续 (剩 ${game.lives} 命)`]);
   else if (game.phase === 'GAMEOVER') drawOverlay(ctx, ['Game Over', '按 Enter 重来']);
   else if (game.phase === 'WIN') drawOverlay(ctx, ['通关！', `得分 ${game.score} · 按 Enter 重来`]);
