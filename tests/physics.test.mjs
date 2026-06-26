@@ -43,6 +43,9 @@ test('grounded player jumps when jump pressed (vy goes negative)', () => {
   assert.equal(p.onGround, true);
   stepPlayer(p, { left: false, right: false, jump: true }, lvl); // press jump
   assert.ok(p.vy < 0, `expected upward velocity, got ${p.vy}`);
+  assert.equal(p.justJumped, true, 'justJumped set on the launch frame');
+  stepPlayer(p, { left: false, right: false, jump: true }, lvl); // still rising, no new jump
+  assert.equal(p.justJumped, false, 'justJumped clears after the launch frame');
 });
 
 test('player accelerates right but is capped at maxRun', () => {

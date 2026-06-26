@@ -79,6 +79,7 @@ export async function boot() {
     // PLAYING
     const p = world.player;
     stepPlayer(p, { left: input.left, right: input.right, jump: input.jump }, level);
+    if (p.justJumped) audio.jump(); // covers ground, coyote, and buffered jumps
 
     for (const e of world.enemies) stepEnemy(e, level);
 
@@ -114,9 +115,7 @@ export async function boot() {
     acc += now - last; last = now;
     let steps = 0;
     while (acc >= STEP && steps < 5) {
-      const beforeGrounded = world.player.onGround;
       update();
-      if (game.phase === 'PLAYING' && beforeGrounded && !world.player.onGround && world.player.vy < 0) audio.jump();
       acc -= STEP; steps++;
     }
     drawScene(ctx, cam, level, world, game, assets, anim);

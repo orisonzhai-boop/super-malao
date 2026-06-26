@@ -11,7 +11,7 @@ export function makePlayer(x, y) {
   return {
     x, y, w: 24, h: 58, vx: 0, vy: 0,
     onGround: false, facing: 1, coyote: 0, buffer: 0, jumpHeld: false,
-    state: 'idle',
+    state: 'idle', justJumped: false,
   };
 }
 
@@ -70,6 +70,7 @@ export function groundedRow(player, level) {
 // Advance the player one fixed step. input: {left,right,jump}. Mutates and returns player.
 export function stepPlayer(player, input, level) {
   const P = PHYS;
+  player.justJumped = false; // one-frame flag: true only on the step a jump launches
   if (input.left && !input.right) { player.vx -= P.accel; player.facing = -1; }
   else if (input.right && !input.left) { player.vx += P.accel; player.facing = 1; }
   else if (player.vx > 0) player.vx = Math.max(0, player.vx - P.decel);
@@ -86,6 +87,7 @@ export function stepPlayer(player, input, level) {
     player.buffer = 0;
     player.coyote = 0;
     player.onGround = false;
+    player.justJumped = true;
   }
   if (!input.jump && player.vy < P.jumpCut) player.vy = P.jumpCut; // variable jump height
 
