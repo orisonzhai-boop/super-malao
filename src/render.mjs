@@ -159,6 +159,51 @@ function drawOverlay(ctx, lines) {
   for (let i = 1; i < lines.length; i++) ctx.fillText(lines[i], VIEW_W / 2, VIEW_H / 2 + 20 + (i - 1) * 28);
 }
 
+function drawProjectiles(ctx, projectiles, cam) {
+  for (const pr of projectiles) {
+    if (!pr.alive) continue;
+    const x = pr.x + pr.w / 2 - cam.x, y = pr.y + pr.h / 2;
+    ctx.strokeStyle = 'rgba(255,207,63,0.55)'; ctx.lineWidth = 4;
+    ctx.beginPath(); ctx.moveTo(x, y); ctx.lineTo(x - Math.sign(pr.vx) * 12, y); ctx.stroke();
+    ctx.fillStyle = '#ffcf3f'; ctx.strokeStyle = '#c77b00'; ctx.lineWidth = 2;
+    ctx.beginPath(); ctx.arc(x, y, pr.w / 2, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
+    ctx.fillStyle = '#fff7d6';
+    ctx.beginPath(); ctx.arc(x - 2, y - 2, 2.5, 0, Math.PI * 2); ctx.fill();
+  }
+}
+
+function drawBoss(ctx, boss, cam, assets) {
+  if (!boss || !boss.alive) return;
+  const img = assets.images.villain, mask = assets.masks.villain, nat = assets.natural.villain;
+  const dh = boss.h + 18, dw = dh * (nat.w / nat.h);
+  const dx = boss.x + boss.w / 2 - dw / 2 - cam.x;
+  const dy = boss.y + boss.h - dh + 4;
+  ctx.save(); ctx.globalAlpha = 0.2; ctx.fillStyle = '#000';
+  ctx.beginPath(); ctx.ellipse(boss.x + boss.w / 2 - cam.x, boss.y + boss.h, 22, 6, 0, 0, Math.PI * 2); ctx.fill(); ctx.restore();
+  drawHero(ctx, img, mask, dx, dy, dw, dh, boss.dir);
+  if (boss.invuln > 0 && Math.floor(boss.invuln / 4) % 2 === 0) {
+    ctx.save();
+    ctx.translate(dx + dw / 2, 0); ctx.scale(boss.dir < 0 ? -1 : 1, 1);
+    ctx.globalAlpha = 0.7; ctx.drawImage(mask, -dw / 2, dy, dw, dh);
+    ctx.restore();
+  }
+}
+
+function drawBossHUD(ctx, boss, cam) {
+  if (!boss || !boss.alive) return;
+  if (!(boss.x + boss.w > cam.x && boss.x < cam.x + VIEW_W)) return;
+  const cx = VIEW_W / 2;
+  ctx.fillStyle = 'rgba(0,0,0,0.55)'; ctx.fillRect(cx - 74, 12, 148, 34);
+  ctx.fillStyle = '#ffffff'; ctx.font = '14px monospace'; ctx.textAlign = 'left';
+  ctx.fillText('BOSS', cx - 62, 34);
+  for (let i = 0; i < 3; i++) {
+    const hx = cx - 10 + i * 24;
+    ctx.fillStyle = i < boss.hp ? '#e24b4a' : 'rgba(255,255,255,0.22)';
+    ctx.fillRect(hx, 22, 18, 14);
+    ctx.strokeStyle = '#a32d2d'; ctx.lineWidth = 1; ctx.strokeRect(hx + 0.5, 22.5, 17, 13);
+  }
+}
+
 // Main draw entry. world={player,enemies,coins}; assets={images,masks,natural}; anim=frame counter.
 export function drawScene(ctx, cam, level, world, game, assets, anim) {
   ctx.clearRect(0, 0, VIEW_W, VIEW_H);
@@ -167,6 +212,7 @@ export function drawScene(ctx, cam, level, world, game, assets, anim) {
   drawCoins(ctx, world.coins, cam, anim);
   drawFlag(ctx, level, cam);
   drawEnemies(ctx, world.enemies, cam);
+  drawBoss(ctx, world.boss, cam, assets);
 
   const p = world.player;
   let frame = 'idle';
@@ -180,9 +226,11 @@ export function drawScene(ctx, cam, level, world, game, assets, anim) {
   ctx.beginPath(); ctx.ellipse(p.x + p.w / 2 - cam.x, p.y + p.h, 16, 5, 0, 0, Math.PI * 2); ctx.fill(); ctx.restore();
   drawHero(ctx, img, mask, dx, dy, dw, dh, p.facing);
 
+  drawProjectiles(ctx, world.projectiles || [], cam);
   drawHUD(ctx, game);
+  drawBossHUD(ctx, world.boss, cam);
 
-  if (game.phase === 'TITLE') drawOverlay(ctx, ['超级玛拉奥 / Super Malao', '按 Enter 开始', '← → 移动 · 空格跳 · M 静音']);
+  if (game.phase === 'TITLE') drawOverlay(ctx, ['超级玛拉奥 / Super Malao', '按 Enter 开始', '← → 移动 · 空格跳 · J 攻击 · M 静音']);
   else if (game.phase === 'DEAD') drawOverlay(ctx, ['你挂了', `按 R 继续 (剩 ${game.lives} 命)`]);
   else if (game.phase === 'GAMEOVER') drawOverlay(ctx, ['Game Over', '按 Enter 重来']);
   else if (game.phase === 'WIN') drawOverlay(ctx, ['通关！', `得分 ${game.score} · 按 Enter 重来`]);
