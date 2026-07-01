@@ -6,6 +6,8 @@ import { createInput } from './input.mjs';
 import { createAudio } from './audio.mjs';
 import { SPRITES, SPRITE_NATURAL } from './sprites.mjs';
 import { drawScene, makeWhiteMask, VIEW_W, VIEW_H } from './render.mjs';
+import { makeProjectile, stepProjectile, hits, ATTACK_COOLDOWN, PROJECTILE_W, MAX_PROJECTILES } from './projectile.mjs';
+import { makeBoss, stepBoss, damageBoss } from './boss.mjs';
 
 const SPAWN = { x: 2 * TILE, y: 0 };
 const STEP = 1000 / 60;
@@ -24,6 +26,8 @@ function freshWorld(level) {
     player: makePlayer(SPAWN.x, SPAWN.y),
     enemies: level.goombas.map((g) => makeEnemy(g.col * TILE, g.row * TILE)),
     coins: level.coins.map((c) => ({ ...c, taken: false })),
+    boss: level.boss ? makeBoss(level.boss.col, level.boss.row) : null,
+    projectiles: [],
   };
 }
 
@@ -50,7 +54,8 @@ export async function boot() {
   let world = freshWorld(level);
   let cam = { x: 0 };
   let anim = 0;
-  let prevStart = false, prevRestart = false, prevMute = false;
+  let prevStart = false, prevRestart = false, prevMute = false, prevAttack = false;
+  let attackCd = 0;
 
   // Full restart rebuilds the level from the immutable LEVEL template so spent
   // '?' blocks (mutated to 'U' in place) are restored for a fresh playthrough.
@@ -63,7 +68,8 @@ export async function boot() {
     const startEdge = input.start && !prevStart;
     const restartEdge = input.restart && !prevRestart;
     const muteEdge = input.mute && !prevMute;
-    prevStart = input.start; prevRestart = input.restart; prevMute = input.mute;
+    const attackEdge = input.attack && !prevAttack;
+    prevStart = input.start; prevRestart = input.restart; prevMute = input.mute; prevAttack = input.attack;
     if (muteEdge) audio.toggleMute();
 
     if (game.phase === 'TITLE' || game.phase === 'GAMEOVER') {
@@ -80,6 +86,7 @@ export async function boot() {
     }
 
     // PLAYING
+    if (attackCd > 0) attackCd--;
     const p = world.player;
     const vyBefore = p.vy;
     stepPlayer(p, { left: input.left, right: input.right, jump: input.jump }, level);
@@ -95,7 +102,30 @@ export async function boot() {
       }
     }
 
+    // throw attack
+    if (attackEdge && attackCd === 0 && world.projectiles.length < MAX_PROJECTILES) {
+      const dir = p.facing;
+      const px = dir > 0 ? p.x + p.w : p.x - PROJECTILE_W;
+      const py = p.y + p.h - 24; // knee height so shots hit ground enemies and the tall boss
+      world.projectiles.push(makeProjectile(px, py, dir));
+      attackCd = ATTACK_COOLDOWN;
+      audio.throw?.();
+    }
+
     for (const e of world.enemies) stepEnemy(e, level);
+
+    // projectiles: advance, then resolve against boss/enemies/walls
+    for (const pr of world.projectiles) stepProjectile(pr, level);
+    for (const pr of world.projectiles) {
+      if (!pr.alive) continue;
+      if (world.boss && world.boss.alive && hits(pr, world.boss)) {
+        if (damageBoss(world.boss)) { pr.alive = false; game = reduce(game, { type: 'bossHit' }); audio.bossHit?.(); }
+        continue;
+      }
+      for (const e of world.enemies) {
+        if (e.alive && hits(pr, e)) { e.alive = false; pr.alive = false; game = reduce(game, { type: 'stomp' }); audio.stomp(); break; }
+      }
+    }
 
     // player vs enemies
     for (const e of world.enemies) {
@@ -103,6 +133,13 @@ export async function boot() {
       if (res === 'stomp') { e.alive = false; p.vy = -8; game = reduce(game, { type: 'stomp' }); audio.stomp(); }
       else if (res === 'hit') { game = reduce(game, { type: 'death' }); audio.death(); break; }
     }
+
+    // boss: pace, contact damages the player, defeat wins the level
+    if (world.boss && world.boss.alive) {
+      stepBoss(world.boss);
+      if (hits(p, world.boss) && game.phase === 'PLAYING') { game = reduce(game, { type: 'death' }); audio.death(); }
+    }
+    if (world.boss && !world.boss.alive && game.phase === 'PLAYING') { game = reduce(game, { type: 'win' }); audio.win(); }
 
     // coins
     for (const co of world.coins) {
@@ -116,12 +153,8 @@ export async function boot() {
     // pit death
     if (p.y > level.rows * TILE + 32 && game.phase === 'PLAYING') { game = reduce(game, { type: 'death' }); audio.death(); }
 
-    // win at flag
-    if (level.flagCol >= 0 && p.x + p.w / 2 >= level.flagCol * TILE && game.phase === 'PLAYING') {
-      game = reduce(game, { type: 'win' }); audio.win();
-    }
-
     cam = clampCamera(p.x + p.w / 2, level);
+    world.projectiles = world.projectiles.filter((pr) => pr.alive && pr.x > cam.x - 64 && pr.x < cam.x + VIEW_W + 64);
   }
 
   let acc = 0, last = performance.now();
