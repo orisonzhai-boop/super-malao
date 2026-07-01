@@ -855,7 +855,9 @@ export async function boot() {
 
   let acc = 0, last = performance.now();
   function frame(now) {
-    acc += now - last; last = now;
+    // Clamp the frame delta so a backgrounded tab (rAF paused) or a lag spike
+    // can't dump a huge backlog into the accumulator and fast-forward the game.
+    acc += Math.min(now - last, 100); last = now;
     let steps = 0;
     while (acc >= STEP && steps < 5) {
       update();
