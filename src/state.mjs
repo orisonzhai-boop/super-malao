@@ -17,6 +17,9 @@ export function reduce(state, event) {
     case 'stomp':
       if (s.phase === 'PLAYING') { s.score += 200; }
       break;
+    case 'bossHit':
+      if (s.phase === 'PLAYING') { s.score += 300; }
+      break;
     case 'death':
       if (s.phase === 'PLAYING') {
         s.lives -= 1;

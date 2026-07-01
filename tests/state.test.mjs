@@ -45,3 +45,11 @@ test('win moves PLAYING -> WIN', () => {
   const s = reduce(reduce(initialGame(), { type: 'start' }), { type: 'win' });
   assert.equal(s.phase, 'WIN');
 });
+
+test('bossHit adds score only while PLAYING', () => {
+  let s = reduce(initialGame(), { type: 'start' });
+  s = reduce(s, { type: 'bossHit' });
+  assert.equal(s.score, 300);
+  const title = reduce(initialGame(), { type: 'bossHit' }); // TITLE -> no-op
+  assert.equal(title.score, 0);
+});
