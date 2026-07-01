@@ -7,17 +7,19 @@ export function makeLevel(rows) {
   const grid = rows.map((r) => r.split(''));
   const coins = [], goombas = [];
   let flagCol = -1;
+  let boss = null;
   for (let r = 0; r < grid.length; r++) {
     for (let c = 0; c < grid[r].length; c++) {
       const ch = grid[r][c];
       if (ch === 'o') { coins.push({ col: c, row: r }); grid[r][c] = ' '; }
       else if (ch === 'g') { goombas.push({ col: c, row: r }); grid[r][c] = ' '; }
       else if (ch === 'F') { if (flagCol < 0) flagCol = c; grid[r][c] = ' '; }
+      else if (ch === 'V') { if (!boss) boss = { col: c, row: r }; grid[r][c] = ' '; }
     }
   }
   const stripped = grid.map((r) => r.join(''));
   const cols = Math.max(...stripped.map((r) => r.length));
-  return { grid: stripped, rows: stripped.length, cols, tile: TILE, coins, goombas, flagCol };
+  return { grid: stripped, rows: stripped.length, cols, tile: TILE, coins, goombas, flagCol, boss };
 }
 
 export function tileChar(level, col, row) {
@@ -64,6 +66,7 @@ function buildLevel() {
   set(9, 40, 'P'); set(10, 40, 'P'); set(11, 40, 'P');
   set(11, 22, 'g'); set(11, 45, 'g'); set(11, 60, 'g');
   set(11, 84, 'F');
+  set(11, 80, 'V'); // Boss spawn near the end (arena is the end platform)
   return g.map((row) => row.join(''));
 }
 

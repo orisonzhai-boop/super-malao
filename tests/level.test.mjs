@@ -2,6 +2,21 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { TILE, isSolidChar, makeLevel, tileChar, isSolid, setTile, LEVEL } from '../src/level.mjs';
 
+test("makeLevel parses 'V' into a single boss spawn and strips it", () => {
+  const lvl = makeLevel(['  V ', '####']);
+  assert.deepEqual(lvl.boss, { col: 2, row: 0 });
+  assert.equal(tileChar(lvl, 2, 0), ' ');   // stripped from collision grid
+  assert.equal(isSolid(lvl, 2, 0), false);
+  const none = makeLevel(['###']);
+  assert.equal(none.boss, null);             // no 'V' -> null
+});
+
+test('LEVEL contains exactly one boss spawn near the end', () => {
+  const lvl = makeLevel(LEVEL);
+  assert.ok(lvl.boss, 'LEVEL should define a boss spawn');
+  assert.ok(lvl.boss.col >= 70, `boss should be near the end, got col ${lvl.boss?.col}`);
+});
+
 test('TILE is 32', () => assert.equal(TILE, 32));
 
 test('isSolidChar classifies tiles', () => {
