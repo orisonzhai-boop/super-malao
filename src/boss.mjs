@@ -2,9 +2,9 @@ import { TILE } from './level.mjs';
 
 export const BOSS_W = 48;
 export const BOSS_H = 60;
-export const BOSS_HP = 3;
+export const BOSS_HP = 6;
 export const BOSS_SPEED = 1.5;
-export const BOSS_INVULN = 30;      // frames of i-frames after a hit
+export const BOSS_INVULN = 14;      // frames of i-frames after a hit
 export const BOSS_ARENA_HALF = 4 * TILE;
 
 export function makeBoss(col, row) {
@@ -12,7 +12,7 @@ export function makeBoss(col, row) {
   const y = row * TILE + (TILE - BOSS_H); // bottom rests on the ground row below
   return {
     x, y, w: BOSS_W, h: BOSS_H,
-    vx: -BOSS_SPEED, dir: -1, hp: BOSS_HP, alive: true, invuln: 0,
+    vx: -BOSS_SPEED, dir: -1, hp: BOSS_HP, maxHp: BOSS_HP, alive: true, invuln: 0,
     arenaMin: x - BOSS_ARENA_HALF, arenaMax: x + BOSS_ARENA_HALF,
   };
 }

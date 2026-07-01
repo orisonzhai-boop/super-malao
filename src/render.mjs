@@ -193,14 +193,21 @@ function drawBossHUD(ctx, boss, cam) {
   if (!boss || !boss.alive) return;
   if (!(boss.x + boss.w > cam.x && boss.x < cam.x + VIEW_W)) return;
   const cx = VIEW_W / 2;
-  ctx.fillStyle = 'rgba(0,0,0,0.55)'; ctx.fillRect(cx - 74, 12, 148, 34);
+  const max = boss.maxHp || boss.hp;
+  const pip = 14, gap = 4, step = pip + gap;             // heart pip layout
+  const barW = max * step - gap;
+  const labelW = 44;                                     // room for the "BOSS" label
+  const boxW = labelW + 12 + barW + 24;
+  ctx.fillStyle = 'rgba(0,0,0,0.55)'; ctx.fillRect(cx - boxW / 2, 12, boxW, 34);
   ctx.fillStyle = '#ffffff'; ctx.font = '14px monospace'; ctx.textAlign = 'left';
-  ctx.fillText('BOSS', cx - 62, 34);
-  for (let i = 0; i < 3; i++) {
-    const hx = cx - 10 + i * 24;
+  const x0 = cx - boxW / 2 + 12;
+  ctx.fillText('BOSS', x0, 34);
+  const hx0 = x0 + labelW + 6;
+  for (let i = 0; i < max; i++) {
+    const hx = hx0 + i * step;
     ctx.fillStyle = i < boss.hp ? '#e24b4a' : 'rgba(255,255,255,0.22)';
-    ctx.fillRect(hx, 22, 18, 14);
-    ctx.strokeStyle = '#a32d2d'; ctx.lineWidth = 1; ctx.strokeRect(hx + 0.5, 22.5, 17, 13);
+    ctx.fillRect(hx, 22, pip, 14);
+    ctx.strokeStyle = '#a32d2d'; ctx.lineWidth = 1; ctx.strokeRect(hx + 0.5, 22.5, pip - 1, 13);
   }
 }
 

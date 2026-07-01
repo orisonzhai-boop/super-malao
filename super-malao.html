@@ -278,11 +278,11 @@ export function stompCheck(player, enemy) {
 // ===== projectile.mjs =====
 
 
-export const PROJECTILE_SPEED = 7;
-export const PROJECTILE_W = 14;
-export const PROJECTILE_H = 14;
-export const ATTACK_COOLDOWN = 18; // frames between shots (~0.3s)
-export const MAX_PROJECTILES = 3;
+export const PROJECTILE_SPEED = 11;
+export const PROJECTILE_W = 16;
+export const PROJECTILE_H = 16;
+export const ATTACK_COOLDOWN = 10; // frames between shots (~0.17s) — snappy rapid fire
+export const MAX_PROJECTILES = 5;
 
 export function makeProjectile(x, y, dir) {
   return { x, y, w: PROJECTILE_W, h: PROJECTILE_H, vx: (dir < 0 ? -1 : 1) * PROJECTILE_SPEED, alive: true };
@@ -310,9 +310,9 @@ export function hits(a, b) {
 
 export const BOSS_W = 48;
 export const BOSS_H = 60;
-export const BOSS_HP = 3;
+export const BOSS_HP = 6;
 export const BOSS_SPEED = 1.5;
-export const BOSS_INVULN = 30;      // frames of i-frames after a hit
+export const BOSS_INVULN = 14;      // frames of i-frames after a hit
 export const BOSS_ARENA_HALF = 4 * TILE;
 
 export function makeBoss(col, row) {
@@ -320,7 +320,7 @@ export function makeBoss(col, row) {
   const y = row * TILE + (TILE - BOSS_H); // bottom rests on the ground row below
   return {
     x, y, w: BOSS_W, h: BOSS_H,
-    vx: -BOSS_SPEED, dir: -1, hp: BOSS_HP, alive: true, invuln: 0,
+    vx: -BOSS_SPEED, dir: -1, hp: BOSS_HP, maxHp: BOSS_HP, alive: true, invuln: 0,
     arenaMin: x - BOSS_ARENA_HALF, arenaMax: x + BOSS_ARENA_HALF,
   };
 }
@@ -642,14 +642,21 @@ function drawBossHUD(ctx, boss, cam) {
   if (!boss || !boss.alive) return;
   if (!(boss.x + boss.w > cam.x && boss.x < cam.x + VIEW_W)) return;
   const cx = VIEW_W / 2;
-  ctx.fillStyle = 'rgba(0,0,0,0.55)'; ctx.fillRect(cx - 74, 12, 148, 34);
+  const max = boss.maxHp || boss.hp;
+  const pip = 14, gap = 4, step = pip + gap;             // heart pip layout
+  const barW = max * step - gap;
+  const labelW = 44;                                     // room for the "BOSS" label
+  const boxW = labelW + 12 + barW + 24;
+  ctx.fillStyle = 'rgba(0,0,0,0.55)'; ctx.fillRect(cx - boxW / 2, 12, boxW, 34);
   ctx.fillStyle = '#ffffff'; ctx.font = '14px monospace'; ctx.textAlign = 'left';
-  ctx.fillText('BOSS', cx - 62, 34);
-  for (let i = 0; i < 3; i++) {
-    const hx = cx - 10 + i * 24;
+  const x0 = cx - boxW / 2 + 12;
+  ctx.fillText('BOSS', x0, 34);
+  const hx0 = x0 + labelW + 6;
+  for (let i = 0; i < max; i++) {
+    const hx = hx0 + i * step;
     ctx.fillStyle = i < boss.hp ? '#e24b4a' : 'rgba(255,255,255,0.22)';
-    ctx.fillRect(hx, 22, 18, 14);
-    ctx.strokeStyle = '#a32d2d'; ctx.lineWidth = 1; ctx.strokeRect(hx + 0.5, 22.5, 17, 13);
+    ctx.fillRect(hx, 22, pip, 14);
+    ctx.strokeStyle = '#a32d2d'; ctx.lineWidth = 1; ctx.strokeRect(hx + 0.5, 22.5, pip - 1, 13);
   }
 }
 

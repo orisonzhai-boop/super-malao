@@ -4,17 +4,17 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { makeLevel, LEVEL, TILE } from '../src/level.mjs';
 import { makeProjectile, stepProjectile, hits } from '../src/projectile.mjs';
-import { makeBoss, stepBoss, damageBoss, BOSS_INVULN } from '../src/boss.mjs';
+import { makeBoss, stepBoss, damageBoss, BOSS_INVULN, BOSS_HP } from '../src/boss.mjs';
 import { initialGame, reduce } from '../src/state.mjs';
 
-test('three projectile hits defeat the boss and win the level (score 900)', () => {
+test('BOSS_HP projectile hits defeat the boss and win the level', () => {
   const level = makeLevel(LEVEL);
   assert.ok(level.boss, 'LEVEL must define a boss spawn');
   const boss = makeBoss(level.boss.col, level.boss.row);
   let game = reduce(initialGame(), { type: 'start' }); // PLAYING, score 0
 
   let rounds = 0;
-  while (boss.alive && rounds < 10) {
+  while (boss.alive && rounds < BOSS_HP + 5) {
     // Spawn a projectile just left of the boss, aimed right (as main does at the player's facing side).
     const pr = makeProjectile(boss.x - 30, boss.y + 10, 1);
     // Fly it and resolve against the boss exactly like main.mjs's projectile loop.
@@ -35,7 +35,7 @@ test('three projectile hits defeat the boss and win the level (score 900)', () =
   // main fires 'win' when the boss is defeated during PLAYING.
   if (!boss.alive && game.phase === 'PLAYING') game = reduce(game, { type: 'win' });
   assert.equal(game.phase, 'WIN');
-  assert.equal(game.score, 900); // 3 landed hits x bossHit(+300)
+  assert.equal(game.score, BOSS_HP * 300); // BOSS_HP landed hits x bossHit(+300)
 });
 
 test('touching the boss costs a life (death), not a stomp', () => {

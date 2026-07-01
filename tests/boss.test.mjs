@@ -19,17 +19,20 @@ test('stepBoss paces and turns at the arena bounds', () => {
   assert.ok(b.vx > 0, 'should have turned rightward after hitting the left bound');
 });
 
-test('damageBoss respects invulnerability and defeats at 0 hp', () => {
+test('damageBoss respects invulnerability and defeats after BOSS_HP hits', () => {
   const b = makeBoss(80, 11);
-  assert.equal(damageBoss(b), true);   // hp 3 -> 2
+  assert.equal(damageBoss(b), true);        // first hit lands
   assert.equal(b.hp, BOSS_HP - 1);
   assert.ok(b.invuln > 0);
-  assert.equal(damageBoss(b), false);  // still invulnerable -> ignored
+  assert.equal(damageBoss(b), false);       // still invulnerable -> ignored
   assert.equal(b.hp, BOSS_HP - 1);
-  for (let i = 0; i < BOSS_INVULN; i++) stepBoss(b); // clear invuln
-  assert.equal(damageBoss(b), true);   // hp -> 1
-  for (let i = 0; i < BOSS_INVULN; i++) stepBoss(b);
-  assert.equal(damageBoss(b), true);   // hp -> 0
+  // land the remaining hits, clearing i-frames between each
+  let landed = 1;
+  for (let guard = 0; guard < 100 && b.alive; guard++) {
+    for (let i = 0; i < BOSS_INVULN; i++) stepBoss(b);
+    if (damageBoss(b)) landed++;
+  }
   assert.equal(b.hp, 0);
   assert.equal(b.alive, false);
+  assert.equal(landed, BOSS_HP, 'should take exactly BOSS_HP landed hits');
 });

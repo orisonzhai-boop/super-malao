@@ -1,10 +1,10 @@
 import { isSolid } from './level.mjs';
 
-export const PROJECTILE_SPEED = 7;
-export const PROJECTILE_W = 14;
-export const PROJECTILE_H = 14;
-export const ATTACK_COOLDOWN = 18; // frames between shots (~0.3s)
-export const MAX_PROJECTILES = 3;
+export const PROJECTILE_SPEED = 11;
+export const PROJECTILE_W = 16;
+export const PROJECTILE_H = 16;
+export const ATTACK_COOLDOWN = 10; // frames between shots (~0.17s) — snappy rapid fire
+export const MAX_PROJECTILES = 5;
 
 export function makeProjectile(x, y, dir) {
   return { x, y, w: PROJECTILE_W, h: PROJECTILE_H, vx: (dir < 0 ? -1 : 1) * PROJECTILE_SPEED, alive: true };
