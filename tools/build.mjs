@@ -5,7 +5,7 @@ import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
-const ORDER = ['sprites', 'level', 'physics', 'entities', 'state', 'audio', 'input', 'render', 'main'];
+const ORDER = ['sprites', 'level', 'physics', 'entities', 'projectile', 'boss', 'state', 'audio', 'input', 'render', 'main'];
 
 let body = '';
 for (const name of ORDER) {
@@ -30,7 +30,7 @@ const html = `<!doctype html>
 <body>
 <div class="wrap">
   <canvas id="game" width="800" height="448"></canvas>
-  <div class="hint">← → / A D 移动 · 空格 / ↑ / W 跳 · R 重开 · Enter 开始 · M 静音</div>
+  <div class="hint">← → / A D 移动 · 空格 / ↑ / W 跳 · J 攻击 · R 重开 · Enter 开始 · M 静音</div>
 </div>
 <script type="module">
 ${body}

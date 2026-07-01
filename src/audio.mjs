@@ -27,6 +27,8 @@ export function createAudio() {
     stomp: () => beep(180, 0.12, 'sawtooth', 70),
     death: () => beep(520, 0.5, 'triangle', 70),
     win: () => [523, 659, 784, 1046].forEach((f, i) => setTimeout(() => beep(f, 0.18, 'square'), i * 140)),
+    throw: () => beep(420, 0.12, 'square', 900),
+    bossHit: () => beep(140, 0.16, 'sawtooth', 60),
     toggleMute: () => { muted = !muted; return muted; },
     isMuted: () => muted,
   };
