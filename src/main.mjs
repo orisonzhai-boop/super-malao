@@ -170,7 +170,7 @@ export async function boot() {
   }
   requestAnimationFrame(frame);
 
-  window.__GAME__ = { get state() { return game; }, get player() { return world.player; }, input };
+  window.__GAME__ = { get state() { return game; }, get player() { return world.player; }, get world() { return world; }, input };
 }
 
 if (typeof window !== 'undefined' && typeof document !== 'undefined') {
